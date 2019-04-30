@@ -1,19 +1,18 @@
 import os
 import sys
-import math
 
 parent_dir = os.path.abspath(os.path.dirname(__file__))
 vendor_dir = os.path.join(parent_dir, 'vendor')
+model_dir = os.path.join(parent_dir, 'Model')
 
 sys.path.append(vendor_dir)
+sys.path.append(model_dir)
 
 import matplotlib.pyplot as plt
 
-SURFACE_TO_DEEP_RATE = 0.10622
-DEEP_TO_SURFACE_RATE = 0.0025768
-
-ATMOSPHERE_TO_SURFACE_RATE = 0.11915
-SURFACE_TO_ATMOSPHERE_RATE = 0.078111
+from Atmosphere import Atmosphere
+from DeepOcean import DeepOcean
+from SurfaceOcean import SurfaceOcean
 
 INITIAL_MASS_ATMOSPHERE = 590
 INITIAL_MASS_SURFACE = 900
@@ -23,35 +22,23 @@ dt = 1
 
 years = [1750]
 
-atmosphereCarbon = [INITIAL_MASS_ATMOSPHERE]
-surfaceCarbon = [INITIAL_MASS_SURFACE]
-deepCarbon = [INITIAL_MASS_DEEP]
+atmosphere = Atmosphere(INITIAL_MASS_ATMOSPHERE)
+surface = SurfaceOcean(INITIAL_MASS_SURFACE)
+deep = DeepOcean(INITIAL_MASS_DEEP)
 
-
-def getChangeInAtmosphericCarbon():
-    return currentSurfaceCarbon * SURFACE_TO_ATMOSPHERE_RATE - currentAtmosphereCarbon * ATMOSPHERE_TO_SURFACE_RATE
-
-def getChangeInSurfaceCarbon():
-    return (currentAtmosphereCarbon * ATMOSPHERE_TO_SURFACE_RATE + currentDeepCarbon * DEEP_TO_SURFACE_RATE
-            -
-            (currentSurfaceCarbon * SURFACE_TO_DEEP_RATE + currentSurfaceCarbon * SURFACE_TO_ATMOSPHERE_RATE))
-
-def getChangeInDeepCarbon():
-    return currentSurfaceCarbon * SURFACE_TO_DEEP_RATE - currentDeepCarbon * DEEP_TO_SURFACE_RATE
-
+atmosphereCarbon = [atmosphere.getCarbonLevel()]
+surfaceCarbon = [surface.getCarbonLevel()]
+deepCarbon = [deep.getCarbonLevel()]
 
 while years[-1] < 2019:
-    currentAtmosphereCarbon = atmosphereCarbon[-1]
-    currentSurfaceCarbon = surfaceCarbon[-1]
-    currentDeepCarbon = deepCarbon[-1]
+    atmosphere.acceptCarbon(surface.transferToAtmosphere())
+    surface.acceptCarbon(atmosphere.transferToSurface())
+    surface.acceptCarbon(deep.transferToSurface())
+    deep.acceptCarbon(surface.transferToDeep())
 
-    newAtmosphereCarbon = currentAtmosphereCarbon + getChangeInAtmosphericCarbon()
-    newSurfaceCarbon = currentSurfaceCarbon + getChangeInSurfaceCarbon()
-    newDeepCarbon = currentDeepCarbon + getChangeInDeepCarbon()
-
-    atmosphereCarbon.append(newAtmosphereCarbon)
-    surfaceCarbon.append(newSurfaceCarbon)
-    deepCarbon.append(newDeepCarbon)
+    atmosphereCarbon.append(atmosphere.getCarbonLevel())
+    surfaceCarbon.append(surface.getCarbonLevel())
+    deepCarbon.append(deep.getCarbonLevel())
 
     years.append(years[-1] + dt)
 
